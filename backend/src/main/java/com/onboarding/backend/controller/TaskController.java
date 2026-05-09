@@ -49,7 +49,7 @@ public class TaskController {
 
         List<Task> rhTasks = taskRepository.findRHTasks();
 
-        //System.out.println("✅ Tâches RH trouvées: " + rhTasks.size());
+        System.out.println("✅ Tâches RH trouvées: " + rhTasks.size());
         rhTasks.forEach(t -> System.out.println("  - " + t.getTitre() + " (" + t.getStatut() + ")"));
 
         return ResponseEntity.ok(rhTasks);
@@ -57,13 +57,22 @@ public class TaskController {
 
     // ── Démarrer une tâche ───────────────────────────────────────────────────
     @PutMapping("/{taskId}/start")
-    public ResponseEntity<?> startTask(@PathVariable String taskId) {
+    public ResponseEntity<?> startTask(@PathVariable String taskId, Authentication auth) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
+        // Vérifier si l'utilisateur a le droit de démarrer cette tâche
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (!canActOnTask(task, acteurCourant)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Vous n'êtes pas autorisé à démarrer cette tâche."));
+        }
+
         if (task.isVerrouille()) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Cette tâche est verrouillée."));
         }
+
         task.setStatut(StatutTask.EN_COURS);
         taskRepository.save(task);
         return ResponseEntity.ok(task);
@@ -80,11 +89,19 @@ public class TaskController {
         if (task.getTaskType() != TaskType.QUIZ) {
             return ResponseEntity.badRequest().body(Map.of("error", "Cette tâche n'est pas un quiz."));
         }
+
         if (task.isVerrouille()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Tâche verrouillée."));
         }
 
-        // ⭐ NOUVEAU : Vérifier le nombre maximal de tentatives (max 3)
+        // Vérifier si l'utilisateur a le droit de soumettre ce quiz
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (!canActOnTask(task, acteurCourant)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Vous n'êtes pas autorisé à soumettre ce quiz."));
+        }
+
+        // Vérifier le nombre maximal de tentatives (max 3)
         int maxTentatives = 3;
         if (task.getNbTentatives() >= maxTentatives) {
             return ResponseEntity.badRequest()
@@ -109,7 +126,6 @@ public class TaskController {
 
         if (scorePourcent >= task.getConfig().getScoreMinimum()) {
             // Le SALARIE a réussi le quiz — marquer sa progression
-            TypeActeur acteurCourant = getTypeActeurFromAuth(auth);
             boolean tousComplete = marquerActeurComplete(task, acteurCourant);
 
             if (tousComplete) {
@@ -124,16 +140,39 @@ public class TaskController {
         } else {
             task.setStatut(StatutTask.EN_COURS);
 
-            // ⭐ NOUVEAU : Si plus de tentatives après cet échec, verrouiller définitivement
+            // Si plus de tentatives après cet échec, verrouiller définitivement
             if (task.getNbTentatives() >= maxTentatives) {
                 task.setVerrouille(true);
-                task.setStatut(StatutTask.REJETE);
+                task.setStatut(StatutTask.EN_COURS);
             }
         }
 
         taskRepository.save(task);
         parcoursService.checkEtDeverrouillerEntretien(task.getParcoursId());
         parcoursService.recalculerProgression(task.getParcoursId());
+        return ResponseEntity.ok(task);
+    }
+
+    // ── Débloquer un quiz ────────────────────────────────────────────────────
+    @PutMapping("/{taskId}/unlock-quiz")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ResponseEntity<?> unlockQuiz(@PathVariable String taskId, Authentication auth) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
+        // Vérifier que l'utilisateur est bien le manager de cette tâche
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (acteurCourant != TypeActeur.MANAGER && acteurCourant != TypeActeur.RH) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Seul le manager ou RH peut débloquer ce quiz."));
+        }
+
+        // Débloquer
+        task.setVerrouille(false);
+        task.setStatut(StatutTask.EN_COURS);
+        task.setNbTentatives(0);
+
+        taskRepository.save(task);
         return ResponseEntity.ok(task);
     }
 
@@ -145,8 +184,15 @@ public class TaskController {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
 
-        if (task.getTaskType() != TaskType.DOCUMENT_SALARIE) {
+        if (task.getTaskType() != TaskType.SIMPLE) {
             return ResponseEntity.badRequest().body(Map.of("error", "Type de tâche invalide."));
+        }
+
+        // Vérifier si l'utilisateur a le droit de soumettre ce document
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (!canActOnTask(task, acteurCourant)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Vous n'êtes pas autorisé à soumettre ce document."));
         }
 
         task.setDocumentContenu(request.getContenu());
@@ -154,11 +200,10 @@ public class TaskController {
         task.setDocumentMimeType(request.getMimeType());
 
         // Marquer la part du SALARIE comme faite
-        TypeActeur acteurCourant = getTypeActeurFromAuth(auth);
         boolean tousComplete = marquerActeurComplete(task, acteurCourant);
 
         if (tousComplete) {
-            // Cas DOCUMENT_SALARIE + typeActeurs = [SALARIE] seulement → auto-complet
+            // Cas SIMPLE + typeActeurs = [SALARIE] seulement → auto-complet
             task.setStatut(StatutTask.TERMINE);
             task.setProgression(100);
             task.setDateCompletion(LocalDateTime.now());
@@ -177,6 +222,31 @@ public class TaskController {
 
         return ResponseEntity.ok(task);
     }
+    @DeleteMapping("/{taskId}/document")
+    @PreAuthorize("hasAnyRole('SALARIE', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> deleteDocument(@PathVariable String taskId, Authentication auth) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
+        // Vérifier que la tâche n'est pas déjà terminée
+        if (task.getStatut() == StatutTask.TERMINE) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Impossible de modifier une tâche terminée."));
+        }
+
+        // Supprimer le document
+        task.setDocumentContenu(null);
+        task.setDocumentNom(null);
+        task.setDocumentMimeType(null);
+
+        // Remettre la progression à 0 pour le salarié (si c'est sa part)
+        resetActeurProgressions(task);
+        task.setProgression(0);
+        task.setStatut(StatutTask.EN_COURS);
+
+        taskRepository.save(task);
+        return ResponseEntity.ok(task);
+    }
 
     // ── Valider une tâche (manager/RH) ──────────────────────────────────────
     @PutMapping("/{taskId}/validate")
@@ -186,6 +256,13 @@ public class TaskController {
                                           Authentication auth) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
+        // Vérifier si l'utilisateur a le droit de valider cette tâche
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (acteurCourant != TypeActeur.MANAGER && acteurCourant != TypeActeur.RH) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Vous n'êtes pas autorisé à valider cette tâche."));
+        }
 
         // Ajouter commentaire si présent
         if (request.getCommentaire() != null && !request.getCommentaire().isBlank()) {
@@ -199,7 +276,6 @@ public class TaskController {
 
         if (request.isApprouve()) {
             // Marquer la part de cet acteur comme faite
-            TypeActeur acteurCourant = getTypeActeurFromAuth(auth);
             boolean tousComplete = marquerActeurComplete(task, acteurCourant);
 
             if (tousComplete) {
@@ -211,11 +287,6 @@ public class TaskController {
                 task.setStatut(StatutTask.EN_COURS);
                 task.setProgression(50);
             }
-        } else {
-            // Rejet → reset les progressions pour que tout recommence
-            task.setStatut(StatutTask.REJETE);
-            task.setProgression(0);
-            resetActeurProgressions(task);
         }
 
         taskRepository.save(task);
@@ -230,12 +301,19 @@ public class TaskController {
                                           Authentication auth) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
         if (task.isVerrouille()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Tâche verrouillée."));
         }
 
+        // Vérifier si l'utilisateur a le droit de compléter cette tâche
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (!canActOnTask(task, acteurCourant)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Vous n'êtes pas autorisé à compléter cette tâche."));
+        }
+
         // Marquer la part de l'acteur courant
-        TypeActeur acteurCourant = getTypeActeurFromAuth(auth);
         boolean tousComplete = marquerActeurComplete(task, acteurCourant);
 
         if (tousComplete) {
@@ -257,9 +335,11 @@ public class TaskController {
     // ── Ajouter un commentaire ───────────────────────────────────────────────
     @PostMapping("/{taskId}/comments")
     public ResponseEntity<?> addComment(@PathVariable String taskId,
-                                        @RequestBody CommentRequest request) {
+                                        @RequestBody CommentRequest request,
+                                        Authentication auth) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
         Task.Commentaire c = new Task.Commentaire();
         c.setAuteurId(request.getAuteurId());
         c.setAuteurNom(request.getAuteurNom());
@@ -275,10 +355,18 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<?> planifierEntretien(
             @PathVariable String taskId,
-            @RequestBody EntretienRequest request) {
+            @RequestBody EntretienRequest request,
+            Authentication auth) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Tâche introuvable."));
+
+        // Vérifier si l'utilisateur a le droit de planifier
+        TypeActeur acteurCourant = getTypeActeurFromAuth(auth, taskId);
+        if (acteurCourant != TypeActeur.MANAGER && acteurCourant != TypeActeur.RH) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Seul le manager ou RH peut planifier un entretien."));
+        }
 
         task.setDateEntretien(request.getDateEntretien());
 
@@ -286,6 +374,7 @@ public class TaskController {
             task.setDocumentEntretienContenu(request.getDocumentContenu());
             task.setDocumentEntretienNom(request.getDocumentNom());
             task.setDocumentEntretienMimeType(request.getDocumentMimeType());
+
         }
 
         taskRepository.save(task);
@@ -293,6 +382,16 @@ public class TaskController {
     }
 
     // ── Helpers privés ───────────────────────────────────────────────────────
+
+    /**
+     * Vérifie si l'acteur peut agir sur la tâche.
+     */
+    private boolean canActOnTask(Task task, TypeActeur acteur) {
+        if (task.getActeurProgressions() == null) return false;
+
+        return task.getActeurProgressions().stream()
+                .anyMatch(ap -> ap.getTypeActeur() == acteur && !ap.isComplete());
+    }
 
     /**
      * Marque la progression de l'acteur donné comme complète.
@@ -325,42 +424,75 @@ public class TaskController {
     }
 
     /**
-     * Détermine le TypeActeur de l'utilisateur connecté selon son rôle.
+     * Détermine le TypeActeur de l'utilisateur connecté.
+     * Priorité:
+     * 1. Si l'utilisateur est assigné à la tâche, utiliser son TypeActeur contextuel
+     * 2. Sinon, utiliser son rôle système
      */
-    private TypeActeur getTypeActeurFromAuth(Authentication auth) {
+    private TypeActeur getTypeActeurFromAuth(Authentication auth, String taskId) {
         if (auth == null) return TypeActeur.SALARIE;
+
         String email = auth.getName();
-        return userRepository.findByEmail(email)
-                .map(u -> switch (u.getRole()) {
-                    case MANAGER -> TypeActeur.MANAGER;
-                    case ADMIN   -> TypeActeur.RH;
-                    default      -> TypeActeur.SALARIE;
-                })
-                .orElse(TypeActeur.SALARIE);
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return TypeActeur.SALARIE;
+
+        // Récupérer la tâche pour connaître le contexte
+        Task task = taskRepository.findById(taskId).orElse(null);
+        if (task == null) return TypeActeur.SALARIE;
+
+        // Vérifier si l'utilisateur est assigné à cette tâche
+        for (int i = 0; i < task.getActeurIds().size(); i++) {
+            if (task.getActeurIds().get(i).equals(user.getId())) {
+                // L'utilisateur a un rôle spécifique dans cette tâche
+                Task.ActeurProgression ap = task.getActeurProgressions().get(i);
+                if (ap != null) {
+                    return ap.getTypeActeur();
+                }
+            }
+        }
+
+        // Fallback: utiliser le rôle système
+        return switch (user.getRole()) {
+            case MANAGER -> TypeActeur.MANAGER;
+            case ADMIN   -> TypeActeur.RH;
+            default      -> TypeActeur.SALARIE;
+        };
     }
 
     // ── DTOs ─────────────────────────────────────────────────────────────────
-    @Data public static class QuizSubmitRequest { private List<Integer> reponses; }
-
-    @Data public static class DocumentSubmitRequest {
-        private String contenu; private String nom; private String mimeType;
+    @Data
+    public static class QuizSubmitRequest {
+        private List<Integer> reponses;
     }
 
-    @Data public static class ValidateRequest {
+    @Data
+    public static class DocumentSubmitRequest {
+        private String contenu;
+        private String nom;
+        private String mimeType;
+    }
+
+    @Data
+    public static class ValidateRequest {
         private boolean approuve;
         private String commentaire;
         private String auteurId;
         private String auteurNom;
     }
 
-    @Data public static class CommentRequest {
-        private String auteurId; private String auteurNom; private String texte;
+    @Data
+    public static class CommentRequest {
+        private String auteurId;
+        private String auteurNom;
+        private String texte;
     }
 
-    @Data public static class EntretienRequest {
+    @Data
+    public static class EntretienRequest {
         private String dateEntretien;
         private String documentContenu;
         private String documentNom;
         private String documentMimeType;
+
     }
 }

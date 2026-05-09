@@ -23,8 +23,6 @@ import {
 const TASK_TYPE_CONFIG: Record<TaskType, { label: string; icon: string; color: string; bg: string }> = {
   FORMATION:        { label: "Formation",        icon: "🎓", color: "#00AEEF", bg: "rgba(0,174,239,0.08)"   },
   QUIZ:             { label: "Quiz",             icon: "🧠", color: "#8DC63F", bg: "rgba(141,198,63,0.08)"  },
-  DOCUMENT_RH:      { label: "Document RH",      icon: "📄", color: "#1A2B6B", bg: "rgba(26,43,107,0.08)"  },
-  DOCUMENT_SALARIE: { label: "Document Salarié", icon: "📎", color: "#d97706", bg: "rgba(217,119,6,0.08)"  },
   ENTRETIEN:        { label: "Entretien",        icon: "🤝", color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
   SIMPLE:           { label: "Tâche simple",     icon: "✅", color: "#059669", bg: "rgba(5,150,105,0.08)"  },
 };
@@ -88,6 +86,7 @@ const AdminParcoursPage = () => {
   const [showEntretienModal, setShowEntretienModal] = useState(false);
   const [entretienDate, setEntretienDate]           = useState("");
   const [entretienFile, setEntretienFile]           = useState<File | null>(null);
+  const [reprogrammationRaison, setReprogrammationRaison] = useState("");
   const [commentText, setCommentText] = useState("");
   const [successMsg, setSuccessMsg]   = useState("");
   const [errorMsg, setErrorMsg]       = useState("");
@@ -207,6 +206,8 @@ const AdminParcoursPage = () => {
   const handlePlanifierEntretien = async () => {
     if (!selectedTask || !entretienDate) { setErrorMsg("La date est obligatoire."); return; }
     let docData: any = { dateEntretien: entretienDate };
+    if (selectedTask.dateEntretien && reprogrammationRaison) {
+    docData.commentaire = reprogrammationRaison;}
     if (entretienFile) {
       const reader = new FileReader();
       await new Promise<void>((resolve) => {
@@ -218,6 +219,18 @@ const AdminParcoursPage = () => {
         reader.readAsDataURL(entretienFile);
       });
     }
+    // Ajouter un commentaire automatique pour la reprogrammation
+if (selectedTask.dateEntretien && reprogrammationRaison) {
+  const raisonText = `🔄 Reprogrammation d'entretien\nRaison : ${reprogrammationRaison}\nNouvelle date : ${new Date(entretienDate).toLocaleString("fr-FR")}`;
+  commentMutation.mutate({
+    taskId: selectedTask.id,
+    data: {
+      auteurId: userId!,
+      auteurNom: "Admin RH",
+      texte: raisonText
+    }
+  });
+}
     entretienMutation.mutate({ taskId: selectedTask.id, data: docData });
   };
 
@@ -247,6 +260,7 @@ const AdminParcoursPage = () => {
                {validRHTasks.length} tâches RH à traiter
               </p>
             </div>
+            
           </div>
           <div className="flex items-center gap-1">
             {[
@@ -437,8 +451,8 @@ const AdminParcoursPage = () => {
                       const typeConf   = TASK_TYPE_CONFIG[task.taskType];
                       const statutConf = STATUT_CONFIG[task.statut];
                       const isSelected = selectedTask?.id === task.id;
-                      const isLocked   = task.verrouille;
-                      // ✅ FIXED: uses typeActeurs (array)
+                      const isLocked   = role==="ADMIN"?false:task.verrouille;
+                    
                       const needsAdmin = needsRhAction(task);
 
                       return (
@@ -471,7 +485,7 @@ const AdminParcoursPage = () => {
                                   style={{ background: statutConf.bg, color: statutConf.color }}>
                                   {statutConf.label}
                                 </span>
-                                {/* ✅ FIXED: displays typeActeurs array */}
+                                
                                 {task.typeActeurs?.map(a => (
                                   <span key={a} className="text-xs" style={{ color: "var(--text-muted)" }}>
                                     {ACTEUR_LABELS[a]}
@@ -560,20 +574,40 @@ const AdminParcoursPage = () => {
                     );
                   })()}
 
-                  {/* Document salarié */}
-                  {selectedTask.taskType === "DOCUMENT_SALARIE" && selectedTask.documentNom && (
+                  {/* Tâche SIMPLE : document admin + document salarié */}
+                  {selectedTask.taskType === "SIMPLE" && (
                     <div className="card p-5 space-y-3">
-                      <p className="text-sm font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>
-                        📎 Document déposé par le salarié
-                      </p>
-                      <button type="button"
-                        onClick={() => selectedTask.documentContenu && openBase64(selectedTask.documentContenu, selectedTask.documentMimeType)}
-                        className="flex items-center gap-3 p-4 rounded-xl w-full text-left transition hover:scale-[1.01]"
-                        style={{ background: "rgba(217,119,6,0.06)", border: "1px solid rgba(217,119,6,0.2)", color: "#d97706" }}>
-                        <span className="text-2xl">📎</span>
-                        <span className="font-medium text-sm flex-1">{selectedTask.documentNom}</span>
-                        <span className="text-xs opacity-60">Consulter</span>
-                      </button>
+                      <p className="text-sm font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>✅ Tâche simple</p>
+                      {/* Document mis à disposition par l'admin */}
+                      {selectedTask.config?.documentNom && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold" style={{ color: "#059669" }}>📄 Document mis à disposition</p>
+                          <button type="button"
+                            onClick={() => selectedTask.config?.documentContenu && openBase64(selectedTask.config.documentContenu, selectedTask.config.documentMimeType)}
+                            className="flex items-center gap-3 p-3 rounded-xl w-full text-left transition hover:opacity-80"
+                            style={{ background: "rgba(5,150,105,0.06)", border: "1px solid rgba(5,150,105,0.2)" }}>
+                            <span className="text-xl">📄</span>
+                            <span className="font-medium text-sm flex-1" style={{ color: "var(--text)" }}>
+                              {selectedTask.config.documentNom}
+                            </span>
+                            <span className="text-xs opacity-60">Consulter</span>
+                          </button>
+                        </div>
+                      )}
+                      {/* Document déposé par le salarié */}
+                      {selectedTask.documentNom && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold" style={{ color: "#d97706" }}>📎 Document déposé par le salarié</p>
+                          <button type="button"
+                            onClick={() => selectedTask.documentContenu && openBase64(selectedTask.documentContenu, selectedTask.documentMimeType)}
+                            className="flex items-center gap-3 p-4 rounded-xl w-full text-left transition hover:scale-[1.01]"
+                            style={{ background: "rgba(217,119,6,0.06)", border: "1px solid rgba(217,119,6,0.2)", color: "#d97706" }}>
+                            <span className="text-2xl">📎</span>
+                            <span className="font-medium text-sm flex-1">{selectedTask.documentNom}</span>
+                            <span className="text-xs opacity-60">Consulter</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -588,9 +622,7 @@ const AdminParcoursPage = () => {
                           <div>
                             <p className="text-xs font-semibold" style={{ color: "#7c3aed" }}>Date planifiée</p>
                             <p className="text-sm font-bold" style={{ color: "var(--text)" }}>
-                              {new Date(selectedTask.dateEntretien).toLocaleDateString("fr-FR", {
-                                weekday: "long", day: "2-digit", month: "long", year: "numeric",
-                              })}
+                               {new Date(selectedTask.dateEntretien).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </p>
                           </div>
                         </div>
@@ -657,9 +689,15 @@ const AdminParcoursPage = () => {
                         <button type="button" onClick={() => handleValidate(true)} className="btn-success flex-1 py-2.5">
                           ✅ Valider
                         </button>
-                        <button type="button" onClick={() => handleValidate(false)} className="btn-danger flex-1 py-2.5">
+                      {/* Mafammech ta3mel rejeter tache{selectedTask.taskType === "ENTRETIEN" && (
+                        <button
+                          type="button"
+                          onClick={() => handleValidate(false)}
+                          className="btn-danger flex-1 py-2.5"
+                        >
                           ❌ Rejeter
                         </button>
+                      )}*/}
                       </div>
                     </div>
                   )}
@@ -806,7 +844,7 @@ const AdminParcoursPage = () => {
             style={{ background: "var(--surface)", maxWidth: "460px", zIndex: 51 }}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>
-                {validateApprouve ? "✅ Valider la tâche" : "❌ Rejeter la tâche"}
+                  ✅ Valider la tâche
               </h3>
               <button type="button" onClick={() => setShowValidateModal(false)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -861,6 +899,30 @@ const AdminParcoursPage = () => {
                 <input type="datetime-local" value={entretienDate} onChange={(e) => setEntretienDate(e.target.value)}
                   className="input-field" min={new Date().toISOString().slice(0, 16)} />
               </div>
+                {/* 🔥 LE CHAMP RAISON 🔥 */}
+        {selectedTask?.dateEntretien && (
+          <div>
+            <label className="block text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>
+              Raison de la reprogrammation *
+            </label>
+            <input 
+              type="text" 
+              value={reprogrammationRaison}
+              onChange={(e) => setReprogrammationRaison(e.target.value)}
+              placeholder="Ex: Document incomplet, Absence du salarié..."
+              className="input-field text-sm"
+            />
+          </div>
+        )}
+
+        {/* Message d'information pour reprogrammation */}
+        {selectedTask?.dateEntretien && (
+          <div className="p-3 rounded-xl text-xs"
+            style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", color: "#f59e0b" }}>
+            ⚠️ L'ancienne date ({new Date(selectedTask.dateEntretien).toLocaleDateString("fr-FR")}) 
+            sera remplacée
+          </div>
+        )}
               <div>
                 <label className="block text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
                   Document de préparation (optionnel)

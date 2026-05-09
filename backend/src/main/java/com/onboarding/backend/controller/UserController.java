@@ -132,6 +132,32 @@ public class UserController {
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "Compte désactivé."));
     }
+    // ── Réactiver un compte désactivé — ADMIN uniquement ─────────────────────
+    @PutMapping("/{id}/reactiver")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> reactiverUser(@PathVariable String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        // Vérifier que le compte est bien désactivé
+        if (user.getStatutCompte() != StatutCompte.DESACTIVE) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", "Seul un compte désactivé peut être réactivé.")
+            );
+        }
+
+        // Réactiver le compte (remettre à VALIDE comme avant désactivation)
+        user.setStatutCompte(StatutCompte.VALIDE);
+        userRepository.save(user);
+
+        // 🔥 Envoyer un email de notification
+        emailService.sendReactivationEmail(
+                user.getEmail(),
+                user.getPrenom() + " " + user.getNom()
+        );
+
+        return ResponseEntity.ok(Map.of("message", "Compte réactivé avec succès."));
+    }
 
     // ── Liste tous les SALARIES (exclut les DESACTIVE) ──────────────────────
     @GetMapping("/salaries")

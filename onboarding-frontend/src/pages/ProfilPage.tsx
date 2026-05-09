@@ -473,16 +473,16 @@ const validateAge = (dateNaissance: string): boolean => {
                     </span>
                   </div>
                 </div>
-                <div className="w-full space-y-1.5 mt-2">
+                {/*<div className="w-full space-y-1.5 mt-2">
                   {fields.slice(0, 5).map((f) => (
                     <div key={f.label} className="flex items-center justify-between text-xs">
                       <span style={{ color: "var(--text-muted)" }}>{f.label}</span>
                       <span className={`px-1.5 py-0.5 rounded-full text-xs ${f.value ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                         {f.value ? "✓" : "○"}
                       </span>
-                    </div>
+                    </div>*
                   ))}
-                </div>
+                </div>*/}
               </div>
             </div>
           </div>
@@ -666,7 +666,7 @@ const validateAge = (dateNaissance: string): boolean => {
       );
     })}
   </div>
-
+   
   <div className="flex gap-3">
     <button 
       type="submit" 

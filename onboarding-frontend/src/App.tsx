@@ -25,6 +25,10 @@ import AdminParcoursTemplatesPage from "./pages/AdminParcoursTemplatesPage";
 import MonParcoursPage from "./pages/MonParcoursPage";
 import ManagerParcoursPage from "./pages/ManagerParcoursPage";
 import AdminParcoursPage from "./pages/AdminParcoursPage";
+import AdminParcoursArchivesPage from "./pages/AdminParcoursArchivesPage";
+import AnciensCollaborateursPage from "./pages/AnciensCollaborateursPage";
+import AdminParcoursTemplatesArchivesPage from "./pages/AdminParcoursTemplatesArchivesPage";
+import AdminPostesArchivesPage from "./pages/AdminPostesArchivesPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -54,7 +58,10 @@ function App() {
           <Route path="/admin/postes" element={<ProtectedAdminRoute><AdminPostesPage /></ProtectedAdminRoute>} />
           <Route path="/admin/parcours" element={<ProtectedAdminRoute><AdminParcoursTemplatesPage /></ProtectedAdminRoute>} />
           <Route path="/admin/suivi-parcours" element={<ProtectedAdminRoute><AdminParcoursPage /></ProtectedAdminRoute>} />
-
+          <Route path="/admin/archives/parcours-termines" element={<ProtectedAdminRoute><AdminParcoursArchivesPage /></ProtectedAdminRoute>} />
+          <Route path="/admin/archives/anciens" element={<ProtectedAdminRoute><AnciensCollaborateursPage /></ProtectedAdminRoute>} />
+          <Route path="/admin/archives/parcours-templates" element={<ProtectedAdminRoute><AdminParcoursTemplatesArchivesPage /></ProtectedAdminRoute>} />
+          <Route path="/admin/archives/postes" element={<ProtectedAdminRoute><AdminPostesArchivesPage /></ProtectedAdminRoute>} />
           {/* Manager */}
           <Route path="/manager" element={<ProtectedManagerRoute><ManagerDashboardPage /></ProtectedManagerRoute>} />
           <Route path="/manager/equipe" element={<ProtectedManagerRoute><ManagerSalariesPage /></ProtectedManagerRoute>} />

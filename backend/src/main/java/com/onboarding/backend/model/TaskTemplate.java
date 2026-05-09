@@ -40,14 +40,6 @@ public class TaskTemplate {
         private List<Question> questions;
         private int scoreMinimum; // ex: 70 = 70%
 
-        // ── DOCUMENT_RH ──
-        private String documentContenu; // base64
-        private String documentNom;
-        private String documentMimeType;
-
-        // ── DOCUMENT_SALARIE ──
-        private String typeDocumentAttendu; // ex: "Contrat signé"
-
         // ── ENTRETIEN ──
         private Integer dureeMinutes;
         private String lieu;
@@ -55,6 +47,11 @@ public class TaskTemplate {
 
         // ── SIMPLE ──
         private String datePlanifiee; // optionnel
+        // Pièce jointe optionnelle (déposée par le salarié)
+        private String documentContenu; // base64
+        private String documentNom;
+        private String documentMimeType;
+        private String typeDocumentAttendu; // description du document attendu (optionnel)
     }
 
     @Data

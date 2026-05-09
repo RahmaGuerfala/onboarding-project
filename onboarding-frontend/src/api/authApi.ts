@@ -11,7 +11,7 @@ import {
   type UserDocument,
   type CompanyDocument,
   type Position,
-    type ParcoursTemplate,
+  type ParcoursTemplate,
   type TaskTemplate,
   type Parcours,
   type Task,
@@ -433,3 +433,61 @@ export const getAllActiveUsersApi = async () => {
   const response = await api.get("/users/all-active-users");
   return response.data;
 };
+export const unlockQuizApi = (taskId: string) =>
+  api.put(`/tasks/${taskId}/unlock-quiz`);
+// ─────────────────────────────────────────────────────────────────────────────
+// ARCHIVE API — à ajouter à la fin de authApi.ts
+// ─────────────────────────────────────────────────────────────────────────────
+ 
+// 1. Parcours terminés
+export const getParcoursTerminesApi = async (): Promise<
+  { parcours: Parcours; salarie: User | null; tasks: Task[] }[]
+> => {
+  const res = await api.get("/archive/parcours-termines");
+  return res.data;
+};
+ 
+// 2. Anciens collaborateurs (statutCompte = DESACTIVE)
+export const getAnciensCollaborateursApi = async (): Promise<
+  { salarie: User; parcours: Parcours | null; tasks: Task[] }[]
+> => {
+  const res = await api.get("/archive/anciens-collaborateurs");
+  return res.data;
+};
+ 
+// 3. Modèles de parcours archivés
+export const getModelesArchivesApi = async (): Promise<ParcoursTemplate[]> => {
+  const res = await api.get("/archive/modeles-archives");
+  return res.data;
+};
+ 
+// 4. Restaurer un modèle archivé
+export const restaurerModeleApi = async (id: string): Promise<{ message: string }> => {
+  const res = await api.put(`/archive/modeles-archives/${id}/restaurer`);
+  return res.data;
+};
+// Réactiver un compte
+export const reactiverUserApi = (userId: string): Promise<{ message: string }> =>
+  api.put(`/users/${userId}/reactiver`);
+// Récupérer tous les parcours archivés
+export const getParcoursArchivesApi = async (): Promise<any[]> => {
+  const res = await api.get("/archive/parcours-archives");
+  return res.data;
+};
+// ── Postes archivés ───────────────────────────────────────────────
+export const getPostesArchivesApi = async (): Promise<Position[]> => {
+  const res = await api.get("/archive/postes-archives");
+  return res.data;
+};
+
+export const restaurerPosteApi = async (id: string): Promise<{ message: string }> => {
+  const res = await api.put(`/archive/postes-archives/${id}/restaurer`);
+  return res.data;
+};
+export const deleteTaskDocumentApi = async (taskId: string): Promise<Task> => {
+  const res = await api.delete(`/tasks/${taskId}/document`);
+  return res.data;
+};
+
+ 
+

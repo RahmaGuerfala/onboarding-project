@@ -19,13 +19,13 @@ public class Task {
     @Id
     private String id;
     private String parcoursId;
-    private String taskTemplateId;
+   // private String taskTemplateId;
 
     private String titre;
     private String description;
     private TaskType taskType;
     private List<TypeActeur> typeActeurs;
-    private List<String> acteurIds;  // userId du manager/RH assigné
+    private List<String> acteurIds;  // userId du manager
 
     private int ordre;
     private boolean obligatoire;

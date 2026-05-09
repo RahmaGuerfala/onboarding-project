@@ -17,5 +17,5 @@ public class Affectation {
     private String userId;       // ID du salarié affecté
     private String positionId;       // Ex: "Développeur Backend"
     private String managerId;    // ID du manager superviseur
-    private LocalDateTime dateAffectation;
+
 }

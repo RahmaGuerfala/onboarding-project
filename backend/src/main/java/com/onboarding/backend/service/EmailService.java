@@ -97,4 +97,24 @@ public class EmailService {
         );
         mailSender.send(message);
     }
+    public void sendReactivationEmail(String toEmail, String fullName) {
+        String loginLink = frontendUrl + "/login";
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("✅ Votre compte a été réactivé - OnboardPro");
+        message.setText(
+                "Bonjour " + fullName + ",\n\n" +
+                        "Votre compte a été réactivé par l'administrateur.\n\n" +
+                        "🔓 Vous pouvez dès à présent vous reconnecter à votre espace OnboardPro :\n" +
+                        loginLink + "\n\n" +
+                        "votre mail:"+toEmail+"\n\n" +
+                        "Si vous avez oublié votre mot de passe, utilisez la fonction \"Mot de passe oublié\" sur la page de connexion.\n\n" +
+                        "Cordialement,\n" +
+                        "L'équipe RH — OnboardPro"
+        );
+
+        mailSender.send(message);
+    }
+
 }
