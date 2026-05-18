@@ -316,7 +316,7 @@ const handleDeleteDocument = () => {
     const prenom = currentUser?.prenom || "Prénom";
     const nom = currentUser?.nom || "Nom";
     const fullName = `${prenom} ${nom}`;
-    const dateValidation = parcours?.dateFin
+    const dateFin = parcours?.dateFin
       ? new Date(parcours.dateFin).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
     const nomEntreprise = "OnboardingPro";
@@ -365,13 +365,15 @@ const handleDeleteDocument = () => {
   <div class="divider"></div>
   <div class="footer">
     <div class="footer-block">
-      <div class="footer-label">Date de validation</div>
-      <div class="footer-value">${dateValidation}</div>
+      <div class="footer-label">Date de fin</div>
+<div class="footer-value">
+  ${dateFin}
+</div>
     </div>
     <div class="seal">🏆</div>
     <div class="footer-block">
-      <div class="footer-label">Progression</div>
-      <div class="footer-value">100 %</div>
+      <div class="footer-label">DIRECTEUR</div>
+      <div class="footer-value">Haythem Haddar</div>
     </div>
   </div>
 </div>
@@ -835,11 +837,12 @@ const handleDeleteDocument = () => {
                   </span>
                 )}
               </div>
+              {/* descri 
               {selectedTask.description && (
                 <p className="text-sm" style={{ color: "rgba(168,216,234,0.75)" }}>
                   {selectedTask.description}
                 </p>
-              )}
+              )}*/}
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 <span className="text-xs px-2 py-1 rounded-full"
                   style={{ background: "rgba(0,174,239,0.2)", color: "#00AEEF" }}>
@@ -887,9 +890,19 @@ const handleDeleteDocument = () => {
             </div>
           </div>
         </div>
-
+        
         {!canActOnTask(selectedTask) && selectedTask.statut !== "TERMINE" && (
           <div className="card p-6 text-center space-y-3">
+            {selectedTask.description && (
+  <div className="p-3 rounded-xl" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+    <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>
+      Description
+    </p>
+    <p className="text-sm whitespace-pre-line" style={{ color: "var(--text)" }}>
+      {selectedTask.description}
+    </p>
+  </div>
+)}
             <span className="text-4xl">👁</span>
             <p className="font-semibold" style={{ color: "var(--text)", fontFamily: "Sora" }}>
               Cette tâche est gérée par {selectedTask.typeActeurs?.map(a => ACTEUR_LABELS[a]).join(" et ")}
@@ -904,6 +917,16 @@ const handleDeleteDocument = () => {
         {selectedTask.taskType === "FORMATION" && canActOnTask(selectedTask) && (
           <div className="card p-6 space-y-4">
             <h3 className="font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>🎓 Formation</h3>
+            {selectedTask.description && (
+  <div className="p-3 rounded-xl" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+    <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>
+      Description
+    </p>
+    <p className="text-sm whitespace-pre-line" style={{ color: "var(--text)" }}>
+      {selectedTask.description}
+    </p>
+  </div>
+)}
             {selectedTask.config?.videoUrl && (
               <div>
                 <p className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
@@ -974,6 +997,7 @@ const handleDeleteDocument = () => {
                 </p>
                 <button type="button" onClick={() => setSelectedTask(null)} className="btn-secondary px-6 py-2">Retour</button>
               </div>
+              
             );
           }
           return (
@@ -981,6 +1005,16 @@ const handleDeleteDocument = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>🧠 Quiz</h3>
+                  {selectedTask.description && (
+  <div className="p-3 rounded-xl" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+    <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>
+      Description
+    </p>
+    <p className="text-sm whitespace-pre-line" style={{ color: "var(--text)" }}>
+      {selectedTask.description}
+    </p>
+  </div>
+)}
                   {selectedTask.nbTentatives > 0 && (
                     <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Tentative {selectedTask.nbTentatives} / 3</p>
                   )}
@@ -1104,7 +1138,21 @@ const handleDeleteDocument = () => {
 {selectedTask.taskType === "SIMPLE" && canActOnTask(selectedTask) && (
   <div className="card p-6 space-y-4">
     <h3 className="font-bold" style={{ color: "var(--text)", fontFamily: "Sora" }}>✅ Tâche à réaliser</h3>
-
+    {/*  Description à l'intérieur du cadre */}
+   {selectedTask.description && (
+    <div className="p-3 rounded-xl" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+     <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-muted)" }}>
+      Description
+      </p>
+     <div className="text-sm" style={{ color: "var(--text)" }}>
+      {selectedTask.description.split(/[.!?]+/).filter(phrase => phrase.trim().length > 0).map((phrase, index) => (
+        <p key={index} className="mb-1">
+          {phrase.trim()}.
+        </p>
+      ))}
+    </div>
+  </div>
+)}
     {/* Document mis à disposition par l'admin */}
     {selectedTask.config?.documentNom && (
       <div className="p-4 rounded-xl space-y-2"

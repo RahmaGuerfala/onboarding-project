@@ -78,7 +78,7 @@ public class ParcoursService {
             for (TypeActeur acteur : tt.getTypeActeurs()) {
                 if (acteur == TypeActeur.MANAGER) acteurIds.add(managerId);
                 else if (acteur == TypeActeur.SALARIE) acteurIds.add(userId);
-                // RH → null, any admin handles it
+
             }
             task.setActeurIds(acteurIds);
 

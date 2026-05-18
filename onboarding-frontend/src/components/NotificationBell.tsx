@@ -154,13 +154,13 @@ if (task.commentaires && task.commentaires.length > 0) {
       }
     }
     // ── 4bis. Quiz débloqué par le manager (après 3 tentatives) ──────────────
-if (
+ if (
   task.taskType === "QUIZ" &&
-  task.nbTentatives === 0 &&           // 👈 Remis à 0 après déblocage
+  task.nbTentatives === 0 &&        
+  task.verrouille === false &&    
   task.statut !== "TERMINE" && task.statut !== "NON_COMMENCE"
 ) {
-  // Vérifier si ce quiz a déjà eu 3 tentatives auparavant (était bloqué)
-  // Pour ça, on peut regarder l'historique ou simplement créer la notification
+
   const id = `QUIZ_UNLOCKED_BY_MANAGER:${task.id}`;
   const alreadyExists = notifs.some(n => n.id === id);
   

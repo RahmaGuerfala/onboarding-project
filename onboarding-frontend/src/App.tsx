@@ -29,6 +29,7 @@ import AdminParcoursArchivesPage from "./pages/AdminParcoursArchivesPage";
 import AnciensCollaborateursPage from "./pages/AnciensCollaborateursPage";
 import AdminParcoursTemplatesArchivesPage from "./pages/AdminParcoursTemplatesArchivesPage";
 import AdminPostesArchivesPage from "./pages/AdminPostesArchivesPage";
+import EquipePage from "./pages/EquipePage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -41,12 +42,14 @@ function App() {
           <Route path="/activate-account" element={<ActivateAccountPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-
+           <Route path="/equipe" element={<ProtectedRoute><EquipePage /></ProtectedRoute>} />
+           
           {/* Salarié */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilPage /></ProtectedRoute>} />
           <Route path="/parcours" element={<ProtectedRoute><MonParcoursPage /></ProtectedRoute>} />
-
+         
+          
           {/* Admin */}
           <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
           <Route path="/admin/salaries" element={<ProtectedAdminRoute><SalariesPage /></ProtectedAdminRoute>} />
@@ -73,6 +76,7 @@ function App() {
           {/* Redirections */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
+          
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

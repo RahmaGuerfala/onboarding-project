@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getParcoursTerminesApi,getParcoursArchivesApi } from "../api/authApi";
+import { getParcoursTerminesApi } from "../api/authApi";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import type { Task, Parcours, User } from "../types/auth";
@@ -19,11 +19,15 @@ const AdminParcoursArchivesPage = () => {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const { data: entries = [], isLoading } = useQuery<Entry[]>({
+  const { data: allEntries = [], isLoading } = useQuery<Entry[]>({
     queryKey: ["archive-parcours-termines"],
     queryFn: getParcoursTerminesApi,
   });
   
+  // Filtrer pour garder uniquement les entrées avec un salarié existant
+  const entries = useMemo(() => {
+    return allEntries.filter(entry => entry.salarie !== null);
+  }, [allEntries]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();

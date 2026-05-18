@@ -28,7 +28,12 @@ const AdminDashboardPage = () => {
   const { isDark, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const [dateEmbauche, setDateEmbauche] = useState("");
+  const [dateEmbauche, setDateEmbauche]  = useState(() => {
+  const date = new Date();
+  date.setDate(date.getDate() + 3);
+  return date.toISOString().split("T")[0];
+});
+
   const [showForm, setShowForm] = useState(false);
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
@@ -131,7 +136,7 @@ const { data: positions = [] } = useQuery({
     [users]
   );
 
-  const salaries = useMemo(() => employees.filter((u: User) => u.role === "SALARIE"), [employees]);
+  const salaries = useMemo(() => employees.filter((u: User) => u.role === "SALARIE" &&  u.statutCompte === "VALIDE" ), [employees]);
   const managers = useMemo(() => employees.filter((u: User) => u.role === "MANAGER"), [employees]);
 
   const filteredEmployees = useMemo(() => {
@@ -616,7 +621,7 @@ const userdateEmbauche =
 </div>
 <div>
       <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>
-        Date d'embauche <span className="text-red-400">*</span>
+        Date d'embauche <span className="text-red-400"></span>
       </label>
       <input
         type="date"

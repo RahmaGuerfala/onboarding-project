@@ -175,7 +175,7 @@ const AdminParcoursPage = () => {
 
   const getUserById = (id: string) => (allUsers as any[]).find(u => u.id === id);
 
-  const getParcoursForUser = (uid: string) => (allParcours as Parcours[]).find(p => p.userId === uid);
+  const getParcoursForUser = (uid: string) => (allParcours as Parcours[]).find(p => p.userId === uid && p.statut === "EN_COURS");
 
   const handleSelectUser = async (uid: string) => {
     setSelectedUserId(uid);
@@ -235,11 +235,23 @@ if (selectedTask.dateEntretien && reprogrammationRaison) {
   };
 
   // ── Filtres ───────────────────────────────────────────────────────
-  const usersWithParcours = (allUsers as any[]).filter(u =>
-    u.role !== "ADMIN" &&
-    (filterRole === "TOUS" || u.role === filterRole) &&
-    (searchQuery === "" || `${u.prenom} ${u.nom}`.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const usersWithParcours = (allUsers as any[]).filter(u => {
+
+  if (u.role === "ADMIN") return false;
+  const parcours = getParcoursForUser(u.id);
+  if (!parcours) return false;
+  // Filtre par rôle
+  if (filterRole !== "TOUS" && u.role !== filterRole) return false;
+  // Filtre par recherche
+  if (searchQuery) {
+    const fullName = `${u.prenom} ${u.nom}`.toLowerCase();
+    const email = u.email.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    if (!fullName.includes(query) && !email.includes(query)) return false;
+  }
+  
+  return true;
+});
 
   const adminTasks = assignedTasks as Task[];
 

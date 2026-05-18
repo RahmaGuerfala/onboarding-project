@@ -721,7 +721,7 @@ const SalarieProfilePage = () => {
                           </div>
                         ))}
 
-                        {/* Affichage du manager uniquement si l'utilisateur connecté n'est pas MANAGER */}
+                        
                         {role !== "MANAGER" && affectation.managerId && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm" style={{ color: "#00AEEF" }}>Manager</span>
@@ -784,7 +784,7 @@ const SalarieProfilePage = () => {
                         </select>
                       </div>
 
-                      {/* Select manager — UNIQUEMENT pour les ADMIN */}
+                      
                       {role === "ADMIN" && (
                         <div>
                           <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
@@ -825,6 +825,11 @@ const SalarieProfilePage = () => {
                           name="datePrisePoste"
                           value={affectationDatePriseDePoste || professionalHireDate || ""}
                           onChange={(e) => setAffectationDatePriseDePoste(e.target.value)}
+                           min={(() => {
+                            const demain = new Date();
+                            demain.setDate(demain.getDate() + 3);
+                            return demain.toISOString().split('T')[0];
+                          })()}
                           className="input-field"
                         />
                         <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>

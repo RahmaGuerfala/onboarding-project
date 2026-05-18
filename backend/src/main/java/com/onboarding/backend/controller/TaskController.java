@@ -140,7 +140,7 @@ public class TaskController {
         } else {
             task.setStatut(StatutTask.EN_COURS);
 
-            // Si plus de tentatives après cet échec, verrouiller définitivement
+            // Si plus de tentatives après cet échec
             if (task.getNbTentatives() >= maxTentatives) {
                 task.setVerrouille(true);
                 task.setStatut(StatutTask.EN_COURS);

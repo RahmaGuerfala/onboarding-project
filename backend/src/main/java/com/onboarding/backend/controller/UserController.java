@@ -75,7 +75,7 @@ public class UserController {
 
     // ── Liste tous les utilisateurs — ADMIN uniquement (exclut les DESACTIVE) ──
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<User>> getAllUsers() {
         // ⭐ MODIFICATION 1: Exclure les comptes désactivés
         List<User> activeUsers = userRepository.findAll().stream()
@@ -382,7 +382,7 @@ public class UserController {
     }
     // Dans votre contrôleur
     @GetMapping("/my-manager")
-    @PreAuthorize("hasRole('SALARIE')")
+    @PreAuthorize("hasRole('SALARIE') or hasRole('MANAGER')")
     public ResponseEntity<User> getMyManager(
             @AuthenticationPrincipal UserDetails userDetails) {
 

@@ -122,7 +122,7 @@ public class AffectationController {
 
     // ── Récupérer toutes les affectations ───────────────────────────────────
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('SALARIE')")
     public ResponseEntity<?> getAllAffectations() {
         return ResponseEntity.ok(affectationRepository.findAll());
     }

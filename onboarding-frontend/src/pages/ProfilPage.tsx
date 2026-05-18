@@ -219,7 +219,8 @@ const validateAge = (dateNaissance: string): boolean => {
   const fields = [
     { label: "Adresse",          value: user?.profile?.adresse,       state: adresse,       setState: setAdresse,       placeholder: "12 rue de la Paix", type: "text",        icon: "🏠", description: "Votre adresse postale complète" },
     { label: "RIB",              value: user?.profile?.rib,           state: rib,           setState: setRib,           placeholder: "FR76 3000 6000...", type: "text",        icon: "🏦", description: "Format IBAN" },
-    { label: "Téléphone",        value: user?.profile?.telephone,     state: telephone,     setState: setTelephone,     placeholder: "+216 XX XXX XXX",   type: "tel",         icon: "📱", description: "Numéro mobile ou fixe" },
+    { label: "Téléphone",        value: user?.profile?.telephone,     state: telephone,    setState: (value : string) => {
+   const numbersOnly = value.replace(/\D/g, '');if (numbersOnly.length <= 8) { setTelephone(numbersOnly);}}, placeholder: "+216 XX XXX XXX",   type: "tel",         icon: "📱", description: "Numéro mobile ou fixe" },
     { label: "Numéro CNSS",      value: user?.profile?.numeroCnss,    state: numeroCnss,    setState: setNumeroCnss,    placeholder: "12345678",          type: "text",        icon: "🪪", description: "Numéro de sécurité sociale" },
     { label: "Date de naissance",value: user?.profile?.dateNaissance, state: dateNaissance, setState: setDateNaissance, placeholder: "",                  type: "date",        icon: "🎂", description: "Votre date de naissance" },
     { label: "Lieu de naissance",value: user?.profile?.lieuNaissance, state: lieuNaissance, setState: setLieuNaissance, placeholder: "Tunis",             type: "text",        icon: "📍", description: "Ville de naissance" },
@@ -374,7 +375,7 @@ const validateAge = (dateNaissance: string): boolean => {
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
                             style={{ background: "rgba(0,174,239,0.3)" }}>
-                            M
+                              {managerNom.split(" ").map(n => n[0]).join("")}
                           </div>
                           <span className="text-sm" style={{ color: "rgba(168,216,234,0.9)" }}>{managerNom}</span>
                         </div>
